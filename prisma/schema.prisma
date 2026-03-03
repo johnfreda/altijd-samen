@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -142,9 +142,10 @@ enum AttendingStatus {
 }
 
 model SiteAnalytics {
-  id             String   @id @default(cuid())
+  id             String      @id @default(cuid())
   siteId         String
-  date           DateTime @db.Date
+  site           WeddingSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  date           DateTime    @db.Date
   pageViews      Int      @default(0)
   uniqueVisitors Int      @default(0)
   rsvpClicks     Int      @default(0)
