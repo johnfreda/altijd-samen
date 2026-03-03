@@ -1,13 +1,37 @@
 'use client'
 
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Monitor, Tablet, Smartphone, Save, Globe, Heart } from 'lucide-react'
+import { ArrowLeft, Monitor, Tablet, Smartphone, Save, Globe, Heart, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useEditorStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
-export function EditorToolbar() {
-  const { partner1Name, partner2Name, previewMode, setPreviewMode, isDirty, markClean } = useEditorStore()
+interface Props {
+  onSave: () => Promise<void>
+  saving: boolean
+}
+
+export function EditorToolbar({ onSave, saving }: Props) {
+  const { siteId } = useParams<{ siteId: string }>()
+  const { partner1Name, partner2Name, previewMode, setPreviewMode, isDirty } = useEditorStore()
+  const [publishing, setPublishing] = useState(false)
+
+  const publish = async () => {
+    if (!siteId || siteId === 'demo') return
+    setPublishing(true)
+    try {
+      await onSave()
+      await fetch(`/api/sites/${siteId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ published: true }),
+      })
+    } catch {} finally {
+      setPublishing(false)
+    }
+  }
 
   const modes = [
     { id: 'desktop' as const, icon: Monitor, label: 'Desktop' },
@@ -32,7 +56,6 @@ export function EditorToolbar() {
         </div>
       </div>
 
-      {/* Preview mode toggle */}
       <div className="flex items-center gap-1 bg-linen rounded-lg p-1">
         {modes.map((mode) => (
           <button
@@ -40,9 +63,7 @@ export function EditorToolbar() {
             onClick={() => setPreviewMode(mode.id)}
             className={cn(
               'p-1.5 rounded-md transition-colors',
-              previewMode === mode.id
-                ? 'bg-white shadow-sm text-warm-black'
-                : 'text-warm-muted hover:text-warm-gray'
+              previewMode === mode.id ? 'bg-white shadow-sm text-warm-black' : 'text-warm-muted hover:text-warm-gray'
             )}
             title={mode.label}
           >
@@ -56,14 +77,19 @@ export function EditorToolbar() {
           variant="outline"
           size="sm"
           className="gap-1.5 border-sand"
-          onClick={() => markClean()}
-          disabled={!isDirty}
+          onClick={onSave}
+          disabled={saving || !isDirty}
         >
-          <Save className="w-3.5 h-3.5" />
-          {isDirty ? 'Opslaan' : 'Opgeslagen'}
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          {saving ? 'Opslaan...' : isDirty ? 'Opslaan' : 'Opgeslagen'}
         </Button>
-        <Button size="sm" className="gap-1.5 bg-warm-black hover:bg-warm-black/90 text-ivory">
-          <Globe className="w-3.5 h-3.5" />
+        <Button
+          size="sm"
+          className="gap-1.5 bg-warm-black hover:bg-warm-black/90 text-ivory"
+          onClick={publish}
+          disabled={publishing}
+        >
+          {publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Globe className="w-3.5 h-3.5" />}
           Publiceer
         </Button>
       </div>
