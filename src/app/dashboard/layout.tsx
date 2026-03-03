@@ -1,20 +1,46 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Heart, LayoutDashboard, PenTool, Users, Settings, CreditCard, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { getDemoUser, clearDemoUser, type DemoUser } from '@/lib/demo-auth'
 
 const sidebarItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Overzicht' },
-  { href: '/dashboard/editor/demo', icon: PenTool, label: 'Editor' },
-  { href: '/dashboard/rsvp/demo', icon: Users, label: 'RSVP' },
   { href: '/dashboard/settings', icon: Settings, label: 'Instellingen' },
   { href: '/dashboard/billing', icon: CreditCard, label: 'Abonnement' },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const [user, setUser] = useState<DemoUser | null>(null)
+  const [checked, setChecked] = useState(false)
+
+  useEffect(() => {
+    const u = getDemoUser()
+    if (!u) {
+      router.push('/login')
+    } else {
+      setUser(u)
+    }
+    setChecked(true)
+  }, [router])
+
+  const handleLogout = () => {
+    clearDemoUser()
+    router.push('/')
+  }
+
+  if (!checked || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ivory">
+        <div className="w-6 h-6 border-2 border-rose border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -29,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <nav className="flex-1 px-3 space-y-1">
           {sidebarItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            const isActive = pathname === item.href
             return (
               <Link
                 key={item.href}
@@ -48,8 +74,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
+        {/* User info + logout */}
         <div className="p-3 border-t border-sand">
-          <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-warm-gray hover:text-warm-black hover:bg-white/50 transition-colors w-full">
+          <div className="px-3 py-2 mb-1">
+            <p className="text-sm font-medium text-warm-black truncate">{user.name}</p>
+            <p className="text-xs text-warm-muted truncate">{user.email}</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-warm-gray hover:text-warm-black hover:bg-white/50 transition-colors w-full"
+          >
             <LogOut className="w-4 h-4" />
             Uitloggen
           </button>
